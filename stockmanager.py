@@ -226,8 +226,29 @@ class stackedExample(QWidget):
         cancel.clicked.connect(self.stock_name_del.clear)
 
     def call_del(self):
+        now = datetime.datetime.now()
+        stock_del_date_time = now.strftime("%Y-%m-%d %H:%M")
+        stock_name = self.stock_name_del.text().replace(' ','_').lower()
         mp.remove_stock(stock_name,stock_del_date_time)
 
     def call_red(self):
+        now = datetime.datetime.now()
+        stock_red_date_time = now.strftime("%Y-%m-%d %H:%M")
+        stock_name = self.stock_name_red.text().replace(' ','_').lower()
+        try:
+            stock_val = -(int(self.stock_count_red.text()))
+            print(stock_val)
+            print(type(stock_val))
+            mp.update_quantity(stock_name, stock_val, stock_red_date_time)
+        except Exception:
             print('Exception')
+
+
+
+    def call_add(self):
+        now = datetime.datetime.now()
+        stock_call_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+        stock_name = self.stock_name_add.text().replace(' ','_').lower()
+        stock_val = int(self.stock_count_add.text())
+        mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
 

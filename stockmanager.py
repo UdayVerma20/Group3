@@ -1,0 +1,233 @@
+from PyQt5 import QtWidgets
+import os
+import datetime
+import manipulation as mp
+from PyQt5.QtCore import QRect
+from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtWidgets import QTableWidget
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtGui import QIcon
+# from PyQt5.QtWidgets import QFormLayout
+# from PyQt5.QtWidgets import QLabel
+# from PyQt5.QtWidgets import QLineEdit
+# from PyQt5.QtWidgets import QListWidget
+# from PyQt5.QtWidgets import QStackedWidget
+from PyQt5.QtWidgets import (QFormLayout, QLabel, QLineEdit, QListWidget, QStackedWidget, QWidget, QPushButton,QMainWindow,
+                             QHBoxLayout, QAction)
+
+import sqlite3
+
+try:
+    conn = sqlite3.connect('stock.db')
+    c = conn.cursor()
+    c.execute("""CREATE TABLE stock (
+                name text,
+                quantity integer,
+                cost integer
+                ) """)
+    conn.commit()
+except Exception:
+    print('DB exists')
+
+
+class Login(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(Login, self).__init__(parent)
+        self.textName = QtWidgets.QLineEdit(self)
+        self.textPass = QtWidgets.QLineEdit(self)
+        self.buttonLogin = QtWidgets.QPushButton('Admin Login', self)
+        self.buttonLogin.clicked.connect(self.handleLogin)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.textName)
+        layout.addWidget(self.textPass)
+        layout.addWidget(self.buttonLogin)
+
+
+    def handleLogin(self):
+        if (self.textName.text() == 'admin' and
+            self.textPass.text() == 'admin'):
+            self.accept()
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, 'Error', 'Bad user or password')
+
+class Example(QMainWindow):
+
+
+    def __init__(self):
+        super().__init__()
+
+        self.initUI()
+
+    def initUI(self):
+        self.st = stackedExample()
+        exitAct = QAction(QIcon('exit_icon.png'), 'Exit', self)
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
+        exitAct.triggered.connect(self.close)
+
+        self.statusBar()
+
+        toolbar = self.addToolBar('Exit')
+        toolbar.addAction(exitAct)
+
+        self.setCentralWidget(self.st)
+
+        self.show()
+
+class stackedExample(QWidget):
+    def __init__(self):
+
+        super(stackedExample, self).__init__()
+        self.leftlist = QListWidget()
+        self.leftlist.setFixedWidth(250)
+        self.leftlist.insertItem(0, 'Add Stock')
+        self.leftlist.insertItem(1, 'Manage Stock')
+        self.leftlist.insertItem(2, 'View Stock')
+        self.leftlist.insertItem(3, 'View Transaction History')
+
+        self.stack1 = QWidget()
+        self.stack2 = QWidget()
+        self.stack3 = QWidget()
+        self.stack4 = QWidget()
+
+        self.stack1UI()
+        self.stack2UI()
+        self.stack3UI()
+        self.stack4UI()
+
+        self.Stack = QStackedWidget(self)
+        self.Stack.addWidget(self.stack1)
+        self.Stack.addWidget(self.stack2)
+        self.Stack.addWidget(self.stack3)
+        self.Stack.addWidget(self.stack4)
+
+        hbox = QHBoxLayout(self)
+        hbox.addWidget(self.leftlist)
+        hbox.addWidget(self.Stack)
+
+        self.setLayout(hbox)
+        self.leftlist.currentRowChanged.connect(self.display)
+        self.setGeometry(500,350, 200, 200)
+        self.setWindowTitle('Stock Management')
+        self.show()
+
+
+    def stack1UI(self):
+        layout = QFormLayout()
+
+
+        self.ok = QPushButton('Add Stock', self)
+        cancel = QPushButton('Cancel', self)
+
+        self.stock_name = QLineEdit()
+        layout.addRow("Stock Name", self.stock_name)
+
+        self.stock_count = QLineEdit()
+        layout.addRow("Quantity", self.stock_count)
+
+        self.stock_cost = QLineEdit()
+        layout.addRow("Cost of Stock (per item)", self.stock_cost)
+
+        layout.addWidget(self.ok)
+        layout.addWidget(cancel)
+
+        self.ok.clicked.connect(self.on_click)
+
+        cancel.clicked.connect(self.stock_name.clear)
+        cancel.clicked.connect(self.stock_cost.clear)
+        cancel.clicked.connect(self.stock_count.clear)
+        self.stack1.setLayout(layout)
+
+    def on_click(self):
+        now = datetime.datetime.now()
+        stock_name_inp = self.stock_name.text().replace(' ','_').lower()
+        stock_count_inp = int(self.stock_count.text())
+        stock_cost_inp = int(self.stock_cost.text())
+        #print(stock_name_inp,stock_count_inp,stock_cost_inp)
+        stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+        d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
+        print(d)
+        #Need to add the above details to table
+
+    def stack2UI(self):
+
+        layout = QHBoxLayout()
+        layout.setGeometry(QRect(0,300,1150,500))
+        tabs = QTabWidget()
+        self.tab1 = QWidget()
+        self.tab2 = QWidget()
+        self.tab3 = QWidget()
+
+        tabs.addTab(self.tab1, 'Add Quantity')
+        tabs.addTab(self.tab2, 'Reduce Quantity')
+        tabs.addTab(self.tab3, 'Delete Stock')
+
+        self.tab1UI()
+        self.tab2UI()
+        self.tab3UI()
+
+        layout.addWidget(tabs)
+        self.stack2.setLayout(layout)
+
+    def tab1UI(self):
+        layout = QFormLayout()
+        self.ok_add = QPushButton('Add Stock', self)
+        cancel = QPushButton('Cancel', self)
+
+        self.stock_name_add = QLineEdit()
+        layout.addRow("Stock Name", self.stock_name_add)
+
+        self.stock_count_add = QLineEdit()
+        layout.addRow("Quantity to add", self.stock_count_add)
+
+        layout.addWidget(self.ok_add)
+        layout.addWidget(cancel)
+        self.tab1.setLayout(layout)
+
+        self.ok_add.clicked.connect(self.call_add)       #need to write function to add quantity
+        cancel.clicked.connect(self.stock_name_add.clear)
+        cancel.clicked.connect(self.stock_count_add.clear)
+
+    def tab2UI(self):
+        layout = QFormLayout()
+        self.ok_red = QPushButton('Reduce Stock', self)
+        cancel = QPushButton('Cancel', self)
+
+        self.stock_name_red = QLineEdit()
+        layout.addRow("Stock Name", self.stock_name_red)
+
+        self.stock_count_red = QLineEdit()
+        layout.addRow("Quantity to reduce", self.stock_count_red)
+
+
+        layout.addWidget(self.ok_red)
+        layout.addWidget(cancel)
+        self.tab2.setLayout(layout)
+
+        self.ok_red.clicked.connect(self.call_red)  # need to write function to reduce quantity
+        cancel.clicked.connect(self.stock_name_red.clear)
+        cancel.clicked.connect(self.stock_count_red.clear)
+
+    def tab3UI(self):
+        layout = QFormLayout()
+        self.ok_del = QPushButton('Delete Stock', self)
+        cancel = QPushButton('Cancel', self)
+
+        self.stock_name_del = QLineEdit()
+        layout.addRow("Stock Name", self.stock_name_del)
+        layout.addWidget(self.ok_del)
+        layout.addWidget(cancel)
+        self.tab3.setLayout(layout)
+
+        self.ok_del.clicked.connect(self.call_del)  # need to write function to delete stock
+        cancel.clicked.connect(self.stock_name_del.clear)
+
+    def call_del(self):
+        mp.remove_stock(stock_name,stock_del_date_time)
+
+    def call_red(self):
+            print('Exception')
+
